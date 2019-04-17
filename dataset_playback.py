@@ -16,7 +16,7 @@ image = np.empty([1, 240, 320, 3])
 for filename in glob.glob(folder_name + "*.jpg"):
     image[0] = cv2.imread(filename)
 
-    cv2.imshow("Driving Footage", image[0, :, :, :] / 255)
+
 
     # Get actual angle from file name
     command = filename[len(folder_name) + 24:48]
@@ -28,15 +28,42 @@ for filename in glob.glob(folder_name + "*.jpg"):
         # Avoid div by zero
         angle = 0.1
 
+    # Get throttle input from file name
+    throttle = int(command[5:8])
+    if command[4] == "1":
+        throttle *= -1
+
+
+
     # Smooth angle for animated steering wheel
     smoothed_angle_actual += 0.2 * pow(abs((angle - smoothed_angle_actual)), 2.0 / 3.0) * (
                 angle - smoothed_angle_actual) / abs(angle - smoothed_angle_actual)
-    M_actual = cv2.getRotationMatrix2D((cols / 2, rows / 2), -smoothed_angle_actual, 1)
-    dst_actual = cv2.warpAffine(img_actual, M_actual, (cols, rows))
-    cv2.putText(dst_actual, "Actual: " + str(round(angle, 0)), (int(cols / 2 - 70), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+    rotation_matrix = cv2.getRotationMatrix2D((cols / 2, rows / 2), -smoothed_angle_actual, 1)
+    modified_image = cv2.warpAffine(img_actual, rotation_matrix, (cols, rows))
+    cv2.putText(modified_image, "Actual: " + str(round(angle, 0)), (int(cols / 2 - 70), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0,
                 (255, 255, 255),
                 lineType=cv2.LINE_AA)
-    # Display the steering wheels
-    cv2.imshow("Actual steering wheel", dst_actual)
+
+    # Draw progress bar to represent throttle input
+    top_left_x = 20
+    top_left_y = 100
+    bar_width = 20
+    bar_height = 100
+    # Border rectangle
+    cv2.rectangle(image[0, :, :, :], (top_left_x, top_left_y), (top_left_x + bar_width, top_left_y + bar_height), (0, 255, 0), 3)
+    # Fill rectangle
+    cv2.rectangle(image[0, :, :, :], (top_left_x, top_left_y + int((255-throttle)*bar_height/255)), (top_left_x + bar_width, top_left_y + bar_height),
+                  (0, 255, 0), -1)
+
+    print("Command: " + str(command) + "  |  Throttle: " + str((255-throttle)))
+    wheel = np.zeros((image[0, :, :, :].shape[0], 240, 3))
+    modified_image = cv2.resize(modified_image, (240, 240))
+    wheel[0:modified_image.shape[0], 0:modified_image.shape[1], 0] = modified_image
+    wheel[0:modified_image.shape[0], 0:modified_image.shape[1], 1] = modified_image
+    wheel[0:modified_image.shape[0], 0:modified_image.shape[1], 2] = modified_image
+    # Display the footage and steering wheel
+    wheel = np.reshape(wheel,(wheel.shape[0], wheel.shape[1], 3))
+    visualisation = np.concatenate((image[0, :, :, :], wheel), axis=1)
+    cv2.imshow("Driving Footage", visualisation / 255)
 
     cv2.waitKey(10)
