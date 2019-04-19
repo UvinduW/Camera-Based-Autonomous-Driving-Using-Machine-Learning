@@ -5,11 +5,15 @@ import cv2
 
 cnn_model = network_model()
 cnn_model.load_weights("drive_model_44.h5")
-img = cv2.imread('steering_wheel_image.jpg',0)
-img_actual = cv2.imread('steering_wheel_image.jpg',0)
-rows,cols = img.shape
+steering_wheel_predicted = cv2.imread('steering_wheel_image.jpg', 0)
+steering_wheel_actual = steering_wheel_predicted
+wheel_rows, wheel_cols = steering_wheel_predicted.shape
 smoothed_angle = 0
 smoothed_angle_actual = 0
+
+image_rows = 240
+image_cols = 320
+size_delta = 1
 
 folder_name = "training_images/"
 file_list = []
@@ -20,15 +24,15 @@ image = np.empty([1, 240, 320, 3])
 for filename in glob.glob(folder_name + "*.jpg"):
     image[0] = cv2.imread(filename)
 
-    cv2.imshow("Driving Footage", image[0, -150:, :, :]/255)
     # Predict angle
-    degrees = cnn_model.predict(image)[0] * 180.0
+    predicted_angle = cnn_model.predict(image)[0] * 180.0
 
     # Smooth angle for animated steering wheel
-    smoothed_angle += 0.2 * pow(abs((degrees - smoothed_angle)), 2.0 / 3.0) * (degrees - smoothed_angle) / abs(degrees - smoothed_angle)
-    M = cv2.getRotationMatrix2D((cols/2,rows/2),-smoothed_angle,1)
-    dst = cv2.warpAffine(img,M,(cols,rows))
-    cv2.putText(dst, "Predicted: " + str(round(int(degrees), 2)), (int(cols/2 - 90), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
+    smoothed_angle += 0.2 * pow(abs((predicted_angle - smoothed_angle)), 2.0 / 3.0) * (predicted_angle - smoothed_angle) / abs(predicted_angle - smoothed_angle)
+    rotation_matrix_predicted = cv2.getRotationMatrix2D((wheel_cols / 2, wheel_rows / 2), -smoothed_angle, 1)
+    modified_wheel_predicted = cv2.warpAffine(steering_wheel_predicted, rotation_matrix_predicted, (wheel_cols, wheel_rows))
+    cv2.putText(modified_wheel_predicted, "Predicted: " + str(round(int(predicted_angle), 2)), (int(wheel_cols / 2 - 90), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
+
     # Get actual angle from file name
     command = filename[len(folder_name) + 24:48]
     angle = int(command[1:4])
@@ -39,14 +43,64 @@ for filename in glob.glob(folder_name + "*.jpg"):
         # Avoid div by zero
         angle = 0.1
 
+    # Get throttle input from file name
+    throttle = int(command[5:8])
+    if command[4] == "1":
+        throttle *= -1
+
     # Smooth angle for animated steering wheel
     smoothed_angle_actual += 0.2 * pow(abs((angle - smoothed_angle_actual)), 2.0 / 3.0) * (angle - smoothed_angle_actual) / abs(angle - smoothed_angle_actual)
-    M_actual = cv2.getRotationMatrix2D((cols/2,rows/2),-smoothed_angle_actual,1)
-    dst_actual = cv2.warpAffine(img_actual,M_actual,(cols,rows))
-    cv2.putText(dst_actual, "Actual: " + str(round(angle, 0)), (int(cols / 2 - 70), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255),
+    rotation_matrix_actual = cv2.getRotationMatrix2D((wheel_cols / 2, wheel_rows / 2), -smoothed_angle_actual, 1)
+    modified_wheel_actual = cv2.warpAffine(steering_wheel_actual, rotation_matrix_actual, (wheel_cols, wheel_rows))
+    cv2.putText(modified_wheel_actual, "Actual: " + str(round(angle, 0)), (int(wheel_cols / 2 - 70), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255),
                 lineType=cv2.LINE_AA)
-    # Display the two steering wheels
-    cv2.imshow("Predicted steering wheel", dst)
-    cv2.imshow("Actual steering wheel", dst_actual)
 
-    cv2.waitKey(10)
+    # Combine the two images
+    # First, process predicted wheel
+    wheel_predicted = np.zeros((image[0, :, :, :].shape[0], image_rows, 3))
+    modified_wheel_predicted = cv2.resize(modified_wheel_predicted, (image_rows, image_rows))
+    wheel_predicted[0:modified_wheel_predicted.shape[0], 0:modified_wheel_predicted.shape[1], 0] = modified_wheel_predicted
+    wheel_predicted[0:modified_wheel_predicted.shape[0], 0:modified_wheel_predicted.shape[1], 1] = modified_wheel_predicted
+    wheel_predicted[0:modified_wheel_predicted.shape[0], 0:modified_wheel_predicted.shape[1], 2] = modified_wheel_predicted
+
+    # Next process actual wheel
+    wheel_actual = np.copy(wheel_predicted)
+    modified_wheel_actual = cv2.resize(modified_wheel_actual, (image_rows, image_rows))
+    wheel_actual[0:modified_wheel_actual.shape[0], 0:modified_wheel_actual.shape[1], 0] = modified_wheel_actual
+    wheel_actual[0:modified_wheel_actual.shape[0], 0:modified_wheel_actual.shape[1], 1] = modified_wheel_actual
+    wheel_actual[0:modified_wheel_actual.shape[0], 0:modified_wheel_actual.shape[1], 2] = modified_wheel_actual
+
+    # Draw progress bar to represent throttle input
+    top_left_x = 20
+    top_left_y = 150
+    bar_width = 10
+    bar_height = 80
+    # Border rectangle
+    cv2.rectangle(wheel_actual, (top_left_x, top_left_y), (top_left_x + bar_width, top_left_y + bar_height), (0, 255, 0), 3)
+    # Fill rectangle
+    cv2.rectangle(wheel_actual, (top_left_x, top_left_y + int((255-throttle)*bar_height/255)), (top_left_x + bar_width, top_left_y + bar_height),
+                  (0, 255, 0), -1)
+
+    # Now combine the two wheels and the footage
+    visualisation = np.concatenate((image[0, :, :, :], wheel_predicted, wheel_actual), axis=1)
+
+    vis_rows = visualisation.shape[0]
+    vis_cols = visualisation.shape[1]
+
+    visualisation = cv2.resize(visualisation, (int(vis_cols * size_delta), int(vis_rows * size_delta)))
+    #size_delta = 0
+
+    # Display the visualisation
+    cv2.imshow("Actual steering wheel", visualisation/255)
+
+    key = cv2.waitKey(1)
+    if key == 113:
+        break
+    elif key == 43:
+        size_delta += 0.2
+
+    elif key == 45:
+        size_delta -= 0.2
+
+    else:
+        print(key)

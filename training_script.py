@@ -2,30 +2,30 @@ from batch_image_reader import read_test_images, read_train_images, number_of_tr
 from model import network_model
 import json
 import matplotlib.pyplot as plt
-from keras.callbacks import Callback
-import cv2
 
-
+throttle_mode = 1
+plots_only = 0
 cnn_model = network_model()
+batch_size = 10
 
-batch_size = 1000
-#batch_size = 10
 
-train_generator = read_train_images(batch_size, 0.9)
-test_generator = read_test_images(1000)
+train_generator = read_train_images(batch_size, 0.9, throttle_mode=throttle_mode)
+test_generator = read_test_images(1000, throttle_mode=throttle_mode)
 test_images, test_angles = next(test_generator)
 
 train_image_count = number_of_training_images()
 
 print("Starting training")
-epochs = 40 #100
+epochs = 40  # 100
+
 # Create empty list to hold history
 full_history = {'val_loss': list(), 'val_acc': list(), 'loss': list(), 'acc': list()}
 
 for e in range(epochs):
-    break
+    if plots_only:
+        break
+
     print("(Batch 1000) Actual Epochs: " + str(e) + "/" + str(epochs))
-    # history = cnn_model.fit_generator(train_generator, validation_data=(test_images, test_angles), steps_per_epoch=train_image_count/batch_size, epochs=1, verbose=1)
     history = cnn_model.fit_generator(train_generator, validation_data=(test_images, test_angles),
                                       steps_per_epoch=train_image_count / batch_size, epochs=1, verbose=1)
     print("Saving Model")
