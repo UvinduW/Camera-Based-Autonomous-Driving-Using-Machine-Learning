@@ -1,9 +1,9 @@
 import numpy as np
 import glob
 import cv2
-import scipy
+import math
 
-folder_name = "training_images/"
+folder_name = "training_images_rosbot/training_images/"
 file_list = []
 test_proportion = 0.2
 
@@ -12,7 +12,7 @@ pos = 0
 neg = 0
 for filename in glob.glob(folder_name + "*.jpg"):
     file_list.append(filename)
-    command = filename[len(folder_name) + 24:48]
+    command = filename[len(folder_name) + 24:-4]
     angle = int(command[1:4])
     angle = angle * 180 / 255
     if command[0] == "1":
@@ -59,7 +59,10 @@ def read_train_images(batch_size=-1, flip_rate=0.5, throttle_mode=0):
             image = cv2.imread(train_files[file_id])
 
             # Read the drive command and extract steering angle input
-            command = train_files[file_id][len(folder_name) + 24:48]
+            command = train_files[file_id][len(folder_name) + 24:-4]
+
+            if command == "":
+                print("Null command")
 
             if throttle_mode:
                 throttle = int(command[5:8])
@@ -89,9 +92,11 @@ def read_train_images(batch_size=-1, flip_rate=0.5, throttle_mode=0):
                 output = angle
 
             output = ((output + 255.0) / 510.0)*2.0 - 1
+
             image_batch[i] = image
             output_batch[i] = output
             i += 1
+
         yield image_batch, output_batch
 
 
@@ -112,7 +117,7 @@ def read_test_images(batch_size=-1, throttle_mode=0):
             if i >= batch_size:
                 break
             image = cv2.imread(test_files[image_number])
-            command = test_files[image_number][len(folder_name) + 24:48]
+            command = test_files[image_number][len(folder_name) + 24:-4]
 
             if throttle_mode:
                 throttle = int(command[5:8])
@@ -129,7 +134,7 @@ def read_test_images(batch_size=-1, throttle_mode=0):
 
                 output = angle
 
-            output = ((output + 255.0) / 510.0)*2.0 - 1
+            output = ((output + 180.0) / 360.0)*2.0 - 1
             image_batch[i] = image
             output_batch[i] = output
             i += 1
@@ -140,19 +145,19 @@ def read_test_images(batch_size=-1, throttle_mode=0):
 
 
 # Uncomment to test the functions:
-# generator = read_train_images(10, 0.9, throttle_mode=1)
+# generator = read_train_images(10, 1, throttle_mode=0)
 # neg = 0
 # pos = 0
 #
 # for images, angles in generator:
 #     for pic, im_angle in zip(images, angles):
 #         cv2.imshow('a', pic/255.0)
-#         print(im_angle)
-#         # if im_angle < 0:
-#         #     neg += 1
-#         # else:
-#         #     pos += 1
-#         #print(pos/(pos+neg))
+#         #print(im_angle)
+#         if im_angle < 0:
+#             neg += 1
+#         else:
+#             pos += 1
+#         print(pos/(pos+neg))
 #         key = cv2.waitKey(10)
 #         if key == 113:
 #             break

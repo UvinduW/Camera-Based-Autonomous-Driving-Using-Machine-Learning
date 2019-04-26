@@ -1,10 +1,17 @@
-from model import network_model
+from model import steering_network_model_2, steering_network_model_2
 import numpy as np
 import glob
 import cv2
 
-cnn_model = network_model()
-cnn_model.load_weights("drive_model_44.h5")
+# Load steering angle predicting network
+steering_model = steering_network_model_2()
+steering_model.load_weights("throttle_model_9.h5")
+
+# Load throttle predicting network
+throttle = steering_network_model_2()
+throttle.load_weights("throttle_model_9.h5")
+
+# Load graphics and initialise variables for steering animation
 steering_wheel_predicted = cv2.imread('steering_wheel_image.jpg', 0)
 steering_wheel_actual = steering_wheel_predicted
 wheel_rows, wheel_cols = steering_wheel_predicted.shape
@@ -13,9 +20,9 @@ smoothed_angle_actual = 0
 
 image_rows = 240
 image_cols = 320
-size_delta = 1
+vis_scaling_factor = 1
 
-folder_name = "training_images/"
+folder_name = "training_images_rosbot/training_images/"  # "training_images/"
 file_list = []
 test_proportion = 0.2
 
@@ -25,7 +32,7 @@ for filename in glob.glob(folder_name + "*.jpg"):
     image[0] = cv2.imread(filename)
 
     # Predict angle
-    predicted_angle = cnn_model.predict(image)[0] * 180.0
+    predicted_angle = steering_model.predict(image)[0] * 180.0
 
     # Smooth angle for animated steering wheel
     smoothed_angle += 0.2 * pow(abs((predicted_angle - smoothed_angle)), 2.0 / 3.0) * (predicted_angle - smoothed_angle) / abs(predicted_angle - smoothed_angle)
@@ -34,7 +41,7 @@ for filename in glob.glob(folder_name + "*.jpg"):
     cv2.putText(modified_wheel_predicted, "Predicted: " + str(round(int(predicted_angle), 2)), (int(wheel_cols / 2 - 90), 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)
 
     # Get actual angle from file name
-    command = filename[len(folder_name) + 24:48]
+    command = filename[len(folder_name) + 24:-4]
     angle = int(command[1:4])
     angle = angle * 180 / 255
     if command[0] == "1":
@@ -87,8 +94,8 @@ for filename in glob.glob(folder_name + "*.jpg"):
     vis_rows = visualisation.shape[0]
     vis_cols = visualisation.shape[1]
 
-    visualisation = cv2.resize(visualisation, (int(vis_cols * size_delta), int(vis_rows * size_delta)))
-    #size_delta = 0
+    visualisation = cv2.resize(visualisation, (int(vis_cols * vis_scaling_factor), int(vis_rows * vis_scaling_factor)))
+    #vis_scaling_factor = 0
 
     # Display the visualisation
     cv2.imshow("Actual steering wheel", visualisation/255)
@@ -97,10 +104,10 @@ for filename in glob.glob(folder_name + "*.jpg"):
     if key == 113:
         break
     elif key == 43:
-        size_delta += 0.2
+        vis_scaling_factor += 0.2
 
     elif key == 45:
-        size_delta -= 0.2
+        vis_scaling_factor -= 0.2
 
     else:
         print(key)

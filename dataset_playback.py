@@ -6,20 +6,20 @@ steering_wheel = cv2.imread('steering_wheel_image.jpg', 0)
 wheel_rows, wheel_cols = steering_wheel.shape
 smoothed_angle_actual = 0
 
-folder_name = "training_images/"
+folder_name = "training_images_rosbot/training_images/"  # "training_images_rosbot/training_images/"
 file_list = []
 test_proportion = 0.2
 
 image_rows = 240
 image_cols = 320
-
+max_angle = 0
 # Read all images
 image = np.empty([1, image_rows, image_cols, 3])
 for filename in glob.glob(folder_name + "*.jpg"):
     image[0] = cv2.imread(filename)
 
     # Get actual angle from file name
-    command = filename[len(folder_name) + 24:48]
+    command = filename[len(folder_name) + 24:-4]
     angle = int(command[1:4])
     angle = angle * 180 / 255
     if command[0] == "1":
@@ -53,7 +53,7 @@ for filename in glob.glob(folder_name + "*.jpg"):
     cv2.rectangle(image[0, :, :, :], (top_left_x, top_left_y + int((255-throttle)*bar_height/255)), (top_left_x + bar_width, top_left_y + bar_height),
                   (0, 255, 0), -1)
 
-    print("Command: " + str(command) + "  |  Throttle: " + str((255-throttle)))
+    #print("Command: " + str(command) + "  |  Throttle: " + str((255-throttle)))
     wheel = np.zeros((image[0, :, :, :].shape[0], image_rows, 3))
     modified_image = cv2.resize(modified_image, (image_rows, image_rows))
     wheel[0:modified_image.shape[0], 0:modified_image.shape[1], 0] = modified_image
@@ -65,5 +65,10 @@ for filename in glob.glob(folder_name + "*.jpg"):
     # Display the footage and steering wheel
     visualisation = np.concatenate((image[0, :, :, :], wheel), axis=1)
     cv2.imshow("Driving Footage", visualisation / 255)
+    cv2.imshow("Cropped image", image[0, -100:, 50:-50, :]/255)
+
+    if abs(angle) > max_angle:
+        max_angle = angle
+        print("Max Angle" + str(max_angle))
 
     cv2.waitKey(10)
