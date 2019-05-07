@@ -6,7 +6,7 @@ steering_wheel = cv2.imread('steering_wheel_image.jpg', 0)
 wheel_rows, wheel_cols = steering_wheel.shape
 smoothed_angle_actual = 0
 
-folder_name = "training_images_rosbot/training_images/"  # "training_images_rosbot/training_images/"
+folder_name = "training_images_2/"  # "training_images_rosbot/training_images/"
 file_list = []
 test_proportion = 0.2
 
@@ -17,6 +17,10 @@ max_angle = 0
 image = np.empty([1, image_rows, image_cols, 3])
 for filename in glob.glob(folder_name + "*.jpg"):
     image[0] = cv2.imread(filename)
+    # cv2.imshow("Cropped image", image[0, -100:, :, :] / 255)
+    # cv2.imshow("Full image", image[0] / 255)
+    # cv2.imshow("Resized Image", cv2.resize(image[0, -100:, :, :], (200, 66)) / 255)
+    print(image[0, -100:, :, :].shape)
 
     # Get actual angle from file name
     command = filename[len(folder_name) + 24:-4]
@@ -65,7 +69,8 @@ for filename in glob.glob(folder_name + "*.jpg"):
     # Display the footage and steering wheel
     visualisation = np.concatenate((image[0, :, :, :], wheel), axis=1)
     cv2.imshow("Driving Footage", visualisation / 255)
-    cv2.imshow("Cropped image", image[0, -100:, 50:-50, :]/255)
+    # cv2.imshow("Cropped image", image[0, -100:, 50:-50, :]/255)
+    # cv2.imshow("Full image", image[0] / 255)
 
     if abs(angle) > max_angle:
         max_angle = angle

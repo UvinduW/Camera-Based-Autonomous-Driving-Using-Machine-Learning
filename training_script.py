@@ -3,13 +3,12 @@ from model import steering_network_model_2
 import json
 import matplotlib.pyplot as plt
 
-throttle_mode = 1
-plots_only = 0
+throttle_mode = 0
+plots_only = 1
 cnn_model = steering_network_model_2()
 batch_size = 10
 
-
-train_generator = read_train_images(batch_size, 0.9, throttle_mode=throttle_mode)
+train_generator = read_train_images(batch_size, 0, throttle_mode=throttle_mode)
 test_generator = read_test_images(1000, throttle_mode=throttle_mode)
 test_images, test_angles = next(test_generator)
 
@@ -25,7 +24,7 @@ for e in range(epochs):
     if plots_only:
         break
 
-    print("(Batch 10) Actual Epochs: " + str(e) + "/" + str(epochs))
+    print("Actual Epochs: " + str(e) + "/" + str(epochs))
     history = cnn_model.fit_generator(train_generator, validation_data=(test_images, test_angles),
                                       steps_per_epoch=train_image_count / batch_size, epochs=1, verbose=1)
     print("Saving Model")
@@ -58,8 +57,10 @@ for e in range(epochs):
 
 print("Finished training")
 
-history_dict = json.load(open('steer_history_full.json', 'r'))
-#history_dict_2 = json.load(open('2history_f.json', 'r'))
+if throttle_mode:
+    history_dict = json.load(open('throttle_history_full.json', 'r'))
+else:
+    history_dict = json.load(open('steer_history_full.json', 'r'))
 
 # list all data in history
 print(history_dict.keys())
