@@ -22,7 +22,7 @@ image_rows = 240
 image_cols = 320
 vis_scaling_factor = 1
 
-folder_name = "training_images_2/"  # "training_images/"
+folder_name = "training_images/"  # "training_images/"
 file_list = []
 test_proportion = 0.2
 

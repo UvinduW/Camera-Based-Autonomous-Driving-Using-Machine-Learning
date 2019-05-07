@@ -3,7 +3,7 @@ import numpy as np
 import glob
 import cv2
 
-image_folder = "training_images_2/"
+image_folder = "training_images/"
 test_to_load = 1
 model_number = 75
 

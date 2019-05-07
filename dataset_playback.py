@@ -6,7 +6,7 @@ steering_wheel = cv2.imread('steering_wheel_image.jpg', 0)
 wheel_rows, wheel_cols = steering_wheel.shape
 smoothed_angle_actual = 0
 
-folder_name = "training_images_2/"  # "training_images_rosbot/training_images/"
+folder_name = "training_images/"  # "training_images_rosbot/training_images/"
 file_list = []
 test_proportion = 0.2
 

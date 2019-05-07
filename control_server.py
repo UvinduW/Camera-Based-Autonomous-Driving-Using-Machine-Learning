@@ -248,7 +248,7 @@ def image_recorder():
     while not quit_request:
         if save_images:
             # Save images if save mode enabled
-            cv2.imwrite('training_images_2/frame{:>010}_command-{}.jpg'.format(image_number, command),
+            cv2.imwrite('training_images/frame{:>010}_command-{}.jpg'.format(image_number, command),
                         image)
             # Increment number which is included in file name to ensure duplicate file names are not possible
             image_number += 1

@@ -3,7 +3,7 @@ import glob
 import cv2
 import math
 
-folder_name = "training_images_2/"
+folder_name = "training_images/"
 file_list = []
 test_proportion = 0.2
 
